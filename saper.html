@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <style>
+        .game-table {
+            margin: 0 auto;
+            height: 800px;
+            width: 800px;
+            outline: 2px solid black;
+            border-collapse: collapse;
+            margin-top: 30px;
+        }
+        .row {
+            margin: 0;
+            padding: 0;
+        }
+        .cell {
+            border: 1px solid black;
+            padding: 0;
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .level-buttons {
+            display: flex;
+            justify-content: center;
+        }
+
+        .level-buttons input[type=button] {
+            width: 90px;
+            margin: 0 7px;
+            padding: 8px 10px;
+            cursor: pointer;
+            border: 2px solid #333;
+            font-size: 15px;
+        }
+
+        .change {
+            padding: 8px 10px;
+            cursor: pointer;
+            border: 2px solid #333;
+            font-size: 15px;
+        }
+
+        .black {
+            background-color: #333;
+            border: 1px solid #fff;
+            color: #fff;
+        }
+
+        .chosen {
+            color: white;
+            background-color: #333;
+        }
+    </style>
+    <title>JSON</title>
+</head>
+
+<body>
+
+    <div class="level-buttons">
+        <input type="button" id="easy" value="Легкий">
+        <input type="button" id="medium" value="Любитель">
+        <input type="button" id="hard" value="Сложный">
+    </div>
+
+    <input type="button" id="change" class="change" value="Поменять цвета">
+
+    <script type="text/javascript">
+
+        //  Функция, генерирующая случайное число
+        function random(max) {
+            return Math.floor(Math.random() * Math.floor(max + 1));
+        }
+        // Заполнение двумерного массива значениями, бомбами
+        function fillFieldArray(field) {
+            let size = field.length;
+            // Создание двумерного массива
+            for (i = 0; i < size; i++) {
+                field[i] = new Array(size);
+            }
+            // Добавление пустых значений в массив
+            for (i = 0; i < size; i++) {
+                for (j = 0; j < size; j++) {
+                    field[i][j] = 0; // empty
+                }
+            }
+            // Добавление бомб в массив
+            for (i = 0; i < size; i++) {
+                for (j = 0; j < size; j++) {
+                    if (random(size) % 5 == 0) {
+                        field[i][j] = 9; // bomb
+                    }
+                }
+            }
+            // Подсчет мин, окружающих клетку
+            for (i = 0; i < size; i++) {
+                for (j = 0; j < size; j++) {
+                    let n = 0;
+                    if (field[i][j] == 9) continue;
+                    if (i > 0)
+                        if (field[i - 1][j] == 9) n++;
+                    if (i > 0 && j > 0)
+                        if (field[i - 1][j - 1] == 9) n++;
+                    if (i > 0 && j < size - 1)
+                        if (field[i - 1][j + 1] == 9) n++;
+                    if (i < size - 1)
+                        if (field[i + 1][j] == 9) n++;
+                    if (i < size - 1 && j > 0)
+                        if (field[i + 1][j - 1] == 9) n++;
+                    if (i < size - 1 && j < size - 1)
+                        if (field[i + 1][j + 1] == 9) n++;
+                    if (j < size - 1)
+                        if (field[i][j + 1] == 9) n++;
+                    if (j > 0)
+                        if (field[i][j - 1] == 9) n++;
+                    field[i][j] = n;
+                }
+            }
+        }
+
+        // Создание таблицы заданных размеров
+        function createTable(size) {
+            let field = new Array(size);
+            fillFieldArray(field);
+            deleteTable(document.querySelector('table'));
+            let table = document.createElement('table');
+            let tbody = document.createElement('tbody');
+            for (i = 0; i < size; i++) {
+                let tr = document.createElement('tr');
+                for (j = 0; j < size; j++) {
+                    let th = document.createElement('th');                    
+                    tr.appendChild(th)
+                }
+                tbody.appendChild(tr);
+            }
+            table.appendChild(tbody);
+            document.body.appendChild(table);
+            //  Изменение стилей ячеек таблицы.
+            setTableStyle(table, size);
+            //  Добавление функции, срабатывающей при нажатии на таблицу.
+            table.onclick = function () { tableClick(event, tbody, field); }
+        }
+        // Удаление узла со страницы
+        function deleteTable(node) {
+            if (node) {
+                while (node.childElementCount) {
+                    node.removeChild(node.lastChild);
+                }
+                node.remove();
+            }
+        }
+        //  Функция, изменяющая стили ячеек таблицы.
+        function setTableStyle(table, size) {
+            table.classList.add('game-table');
+            for (i = 0; i < size; i++) {
+                let tr = document.getElementsByTagName('tr')[i];
+                for (j = 0; j < size ** 2; j++) {
+                    let th = document.getElementsByTagName('th')[j];
+                    th.classList.add('cell');
+                    th.style.height = `${100 / size}%`;
+                    th.style.width = `${100 / size}%`;
+                }
+                tr.classList.add('row');
+            }
+        }
+        //  Функция, срабатывающая при нажатии на клетки таблицы.
+        function tableClick(event, tbody, field) {
+            let target = event.target;
+            if (target.nodeName == "TH") {
+                let rowIndex = target.parentElement.rowIndex;
+                let cellIndex = target.cellIndex;
+                if(field[rowIndex][cellIndex] == 9) {
+                    tbody.children[rowIndex].children[cellIndex].style.backgroundColor = 'red';
+                    // alert('Бомба! Вы проиграли!');
+                } else {
+                    tbody.children[rowIndex].children[cellIndex].innerText = field[rowIndex][cellIndex];
+                }
+                // target.classList.toggle('black');
+                // target.style.background = `rgb(${random(255)}, ${random(255)}, ${random(255)})`
+            }
+        }
+        // Функция, меняющая стилб выбранной кнопки (для выделения)
+        function chosenButton(button) {
+            let btns = document.querySelector('.level-buttons').children;
+            for (i = 0; i < btns.length; i++) {
+                btns[i].classList.remove('chosen');
+            }
+            button.classList.add('chosen');
+        }
+        // Три функции снизу создают таблицу разных размеров
+        easy.onclick = function () {
+            createTable(8);
+            chosenButton(this);
+        }
+        medium.onclick = function () {
+            createTable(16);
+            chosenButton(this);
+        }
+        hard.onclick = function () {
+            createTable(32);
+            chosenButton(this);
+        }
+        // При нажатии на кнопку "поменять цвета"
+        change.onclick = function () {
+            let ths = document.querySelectorAll('th');
+            for (i = 0; i < ths.length; i++) {
+                ths[i].classList.toggle('black');
+            }
+        }
+
+    </script>
+</body>
+
+</html>
